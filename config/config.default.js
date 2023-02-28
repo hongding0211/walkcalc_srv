@@ -23,21 +23,50 @@ module.exports = (appInfo) => {
     // myAppName: 'egg',
   }
 
+  const loginType = ['sso', 'wx']
+
+  const ssoBaseUrl = 'https://hong97.ltd/sso'
+  const sso = {
+    baseUrl: ssoBaseUrl,
+    api: {
+      getUserInfo: {
+        path: `${ssoBaseUrl}/api/userInfo`,
+        method: 'GET',
+      },
+      validate: {
+        path: `${ssoBaseUrl}/api/validate`,
+        method: 'POST',
+      },
+    },
+  }
+
+  const mongoose = {
+    client: {
+      url: 'mongodb://127.0.0.1:27017',
+      options: {
+        dbName: 'walkingcalc',
+      },
+    },
+  }
+
   /** **********************
    ***** Middleware *******
    ************************/
   config.auth = {
-    ignore: '/',
+    ignore: '/user/login',
   }
 
   config.traffic = {
     windowSize: 60 * 1000,
     maxRequest: 100,
-    ignore: '/',
+    ignore: '/user/login',
   }
 
   return {
     ...config,
     ...userConfig,
+    mongoose,
+    sso,
+    loginType,
   }
 }
