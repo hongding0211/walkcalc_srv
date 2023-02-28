@@ -1,0 +1,18 @@
+#!/bin/sh
+
+echo '🔎 Start lint'
+
+eslint --fix .
+
+exitCode="$?"
+
+if [ $exitCode != 0 ]; then
+	echo '❌ Lint failed'
+else
+	echo '✅ Lint passed'
+	git add .
+fi
+
+exit $exitCode
+
+

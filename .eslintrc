@@ -1,0 +1,16 @@
+{
+  "root": true,
+  "extends": [
+    "eslint-config-egg",
+    "prettier"
+  ],
+  "plugins": [
+    "prettier"
+  ],
+  "rules": {
+    "prettier/prettier": "warn"
+  },
+  "parserOptions": {
+    "ecmaVersion": 13
+  }
+}
