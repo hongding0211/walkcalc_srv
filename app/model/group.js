@@ -6,9 +6,10 @@ module.exports = (app) => {
     id: { type: String },
     owner: { type: Schema.Types.ObjectId },
     members: { type: Array },
-    record: { type: Array },
+    records: { type: Array },
     createdAt: { type: Number },
     modifiedAt: { type: Number },
+    tempUsers: { type: Array },
   })
 
   return mongoose.model('Group', GroupSchema)
