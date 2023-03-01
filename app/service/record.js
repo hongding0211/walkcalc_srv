@@ -26,6 +26,14 @@ class RecordService extends Service {
       throw new Error('You are not in the group.')
     }
 
+    let uuid = await this.ctx.model.User.find({
+      _id: userId,
+    })
+    if (uuid.length < 1) {
+      throw new Error('User not exists')
+    }
+    uuid = uuid[0].uuid
+
     const len = (
       await this.ctx.model.Group.aggregate([
         {
@@ -59,7 +67,7 @@ class RecordService extends Service {
       {
         $push: {
           records: {
-            who: userId,
+            who: uuid,
             ...payload,
             createdAt: Date.now(),
             modifiedAt: Date.now(),
@@ -164,8 +172,98 @@ class RecordService extends Service {
   }
 
   async my() {
-    // const { _id } = this.ctx.token
-    // const userId = new this.app.mongoose.Types.ObjectId(_id)
+    const { _id } = this.ctx.token
+    const userId = new this.app.mongoose.Types.ObjectId(_id)
+
+    const c = this.ctx.model.Group.find({
+      $or: [
+        {
+          owner: userId,
+        },
+        {
+          members: {
+            $elemMatch: {
+              $eq: userId,
+            },
+          },
+        },
+      ],
+    })
+
+    this.ctx.pagination.total = await c.countDocuments({})
+
+    const { page, size } = this.ctx.pagination
+
+    return this.ctx.model.Group.aggregate([
+      {
+        $match: {
+          $or: [
+            {
+              owner: userId,
+            },
+            {
+              members: {
+                $elemMatch: {
+                  $eq: userId,
+                },
+              },
+            },
+          ],
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'members',
+          foreignField: '_id',
+          as: 'membersInfo',
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          __v: 0,
+          members: 0,
+        },
+      },
+      {
+        $project: {
+          membersInfo: {
+            _id: 0,
+            source: 0,
+            source_uid: 0,
+            __v: 0,
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'owner',
+          foreignField: '_id',
+          as: 'ownerInfo',
+        },
+      },
+      {
+        $unwind: {
+          path: '$ownerInfo',
+        },
+      },
+      {
+        $project: {
+          owner: 0,
+          ownerInfo: {
+            _id: 0,
+            source: 0,
+            source_uid: 0,
+            __v: 0,
+          },
+        },
+      },
+    ])
+      .sort({ modifiedAt: -1 })
+      .skip((page - 1) * size)
+      .limit(size)
   }
 }
 
