@@ -9,4 +9,5 @@ module.exports = (app) => {
 
   require('./router/user')(app)
   require('./router/group')(app)
+  require('./router/record')(app)
 }

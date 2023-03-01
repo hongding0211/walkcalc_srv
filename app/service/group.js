@@ -39,9 +39,10 @@ class GroupService extends Service {
         id: nextId,
         owner: _id,
         members: membersIds,
-        record: [],
+        records: [],
         createdAt: Date.now(),
         modifiedAt: Date.now(),
+        tempUsers: [],
       },
     ])
   }
@@ -127,7 +128,50 @@ class GroupService extends Service {
         owner: userId,
       },
       {
-        $set: { record: [] },
+        $set: { records: [] },
+      }
+    )
+  }
+
+  async addTempUser(groupId, uuid, userName) {
+    const { _id } = this.ctx.token
+    const userId = new this.app.mongoose.Types.ObjectId(_id)
+
+    if (
+      (
+        await this.ctx.model.Group.find({
+          id: groupId,
+          owner: userId,
+        })
+      ).length < 1
+    ) {
+      throw new Error('You do not own this group')
+    }
+
+    if (
+      (
+        await this.ctx.model.Group.find({
+          id: groupId,
+          tempUsers: {
+            $elemMatch: { name: userName },
+          },
+        })
+      ).length > 0
+    ) {
+      throw new Error('Name exists.')
+    }
+
+    return this.ctx.model.Group.updateOne(
+      {
+        id: groupId,
+      },
+      {
+        $push: {
+          tempUsers: {
+            uuid,
+            name: userName,
+          },
+        },
       }
     )
   }

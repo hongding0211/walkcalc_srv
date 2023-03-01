@@ -1,4 +1,5 @@
 const BaseController = require('./base')
+const short = require('short-uuid')
 
 class GroupController extends BaseController {
   async create() {
@@ -79,6 +80,33 @@ class GroupController extends BaseController {
         })
       } else {
         this.error('Clear failed.')
+      }
+    } catch (e) {
+      this.error(e.message)
+    }
+  }
+
+  async addTempUser() {
+    this.ctx.validate(
+      {
+        id: { type: 'string' },
+        name: { type: 'string' },
+      },
+      this.ctx.request.body
+    )
+
+    const { id, name } = this.ctx.request.body
+    const uuid = short.uuid()
+
+    try {
+      const update = await this.ctx.service.group.addTempUser(id, uuid, name)
+      if (update.nModified === 1) {
+        this.success({
+          uuid,
+          name,
+        })
+      } else {
+        this.error('Add failed.')
       }
     } catch (e) {
       this.error(e.message)
