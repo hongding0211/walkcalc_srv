@@ -96,8 +96,7 @@ class RecordController extends BaseController {
   }
 
   async my() {
-    // TODO
-    this.success({})
+    this.success(await this.ctx.service.record.my())
   }
 }
 
