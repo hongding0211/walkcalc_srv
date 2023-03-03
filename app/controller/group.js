@@ -5,14 +5,14 @@ class GroupController extends BaseController {
   async create() {
     this.ctx.validate(
       {
-        members: { type: 'array', required: false },
+        name: { type: 'string' },
       },
       this.ctx.request.body
     )
 
-    const members = this.ctx.request.body.members || []
+    const { name } = this.ctx.request.body
 
-    const c = await this.ctx.service.group.create(members)
+    const c = await this.ctx.service.group.create(name)
     this.success({
       groupId: c[0].id,
     })
