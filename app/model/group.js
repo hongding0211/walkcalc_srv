@@ -5,6 +5,7 @@ module.exports = (app) => {
   const GroupSchema = new Schema({
     id: { type: String },
     owner: { type: Schema.Types.ObjectId },
+    name: { type: String },
     members: { type: Array },
     records: { type: Array },
     createdAt: { type: Number },
