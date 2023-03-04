@@ -64,8 +64,36 @@ class RecordController extends BaseController {
     }
   }
 
-  async my() {
-    this.success(await this.ctx.service.record.my())
+  async getById() {
+    this.ctx.validate(
+      {
+        id: { type: 'string' },
+      },
+      this.ctx.query
+    )
+
+    const { id } = this.ctx.query
+
+    const f = await this.ctx.service.record.getById(id)
+
+    if (f.length > 0) {
+      this.success(f[0])
+    } else {
+      this.error('Query failed')
+    }
+  }
+
+  async getByGroupId() {
+    this.ctx.validate(
+      {
+        id: { type: 'string' },
+      },
+      this.ctx.query
+    )
+
+    const { id } = this.ctx.query
+
+    this.success(await this.ctx.service.record.getByGroupId(id))
   }
 }
 

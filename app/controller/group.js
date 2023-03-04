@@ -118,6 +118,29 @@ class GroupController extends BaseController {
       this.error(e.message)
     }
   }
+
+  async my() {
+    this.success(await this.ctx.service.group.my())
+  }
+
+  async getById() {
+    this.ctx.validate(
+      {
+        id: { type: 'string' },
+      },
+      this.ctx.query
+    )
+
+    const { id } = this.ctx.query
+
+    const f = await this.ctx.service.group.getById(id)
+
+    if (f.length < 1) {
+      this.error('Query failed')
+      return
+    }
+    this.success(f[0])
+  }
 }
 
 module.exports = GroupController

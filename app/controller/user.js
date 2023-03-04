@@ -75,6 +75,7 @@ class UserController extends BaseController {
     const found = await this.ctx.service.user.findById(this.ctx.token._id)
     if (found.length < 1) {
       this.error('User not exists.')
+      return
     }
     this.success(found[0])
   }
