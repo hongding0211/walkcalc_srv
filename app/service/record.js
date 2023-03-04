@@ -8,6 +8,13 @@ class RecordService extends Service {
     const { groupId, forWhom, paid } = payload
     delete payload.groupId
 
+    if (forWhom.length < 1) {
+      throw new Error('For whom length less than 1')
+    }
+    if (paid === 0) {
+      throw new Error('Meaningless 0 amount')
+    }
+
     if (
       (
         await this.ctx.model.Group.find({
@@ -17,7 +24,11 @@ class RecordService extends Service {
               owner: userId,
             },
             {
-              members: { $elemMatch: { $eq: userId } },
+              members: {
+                $elemMatch: {
+                  id: { $eq: userId },
+                },
+              },
             },
           ],
         })
@@ -33,6 +44,10 @@ class RecordService extends Service {
       throw new Error('User not exists')
     }
     uuid = uuid[0].uuid
+
+    if (forWhom.length === 1 && forWhom[0] === uuid) {
+      throw new Error('You cannot pay your self')
+    }
 
     const len = (
       await this.ctx.model.Group.aggregate([
