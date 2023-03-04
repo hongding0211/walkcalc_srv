@@ -64,37 +64,6 @@ class RecordController extends BaseController {
     }
   }
 
-  async update() {
-    this.ctx.validate(
-      {
-        recordId: { type: 'string' },
-        groupId: { type: 'string' },
-        paid: { type: 'number' },
-        forWhom: { type: 'array' },
-        type: { type: 'string' },
-        text: { type: 'string' },
-        long: { type: 'string' },
-        lat: { type: 'string' },
-      },
-      this.ctx.request.body
-    )
-
-    try {
-      const update = await this.ctx.service.record.update(this.ctx.request.body)
-      if (update.nModified > 0) {
-        this.success({
-          ...this.ctx.request.body,
-        })
-      } else if (update.n && !update.nModified) {
-        this.error('Already updated.')
-      } else {
-        this.error('Update failed.')
-      }
-    } catch (e) {
-      this.error(e.message)
-    }
-  }
-
   async my() {
     this.success(await this.ctx.service.record.my())
   }

@@ -58,6 +58,20 @@ class UserService extends Service {
   add(user) {
     return this.ctx.model.User.insertMany([user])
   }
+
+  myDebt() {
+    const { _id } = this.ctx.token
+    const userId = new this.app.mongoose.Types.ObjectId(_id)
+
+    return this.ctx.model.User.find(
+      {
+        _id: userId,
+      },
+      {
+        debt: 1,
+      }
+    )
+  }
 }
 
 module.exports = UserService

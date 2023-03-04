@@ -8,6 +8,7 @@ module.exports = (app) => {
     source: { type: String },
     source_uid: { type: String },
     avatar: { type: String },
+    debt: { type: Number },
   })
 
   return mongoose.model('User', UserSchema)
