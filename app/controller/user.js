@@ -43,6 +43,7 @@ class UserController extends BaseController {
               source: type,
               source_uid: uid,
               avatar: d.avatar,
+              debt: 0,
             }
             break
           }
@@ -102,6 +103,17 @@ class UserController extends BaseController {
     const { name } = this.ctx.request.query
     const found = await this.ctx.service.user.findByName(name)
     this.success(found)
+  }
+
+  async myDebt() {
+    const found = await this.ctx.service.user.myDebt()
+    if (found.length > 0) {
+      this.success({
+        debt: found[0].debt,
+      })
+    } else {
+      this.error('Query failed')
+    }
   }
 }
 

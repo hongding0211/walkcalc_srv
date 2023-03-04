@@ -3,6 +3,7 @@ const Service = require('egg').Service
 class GroupService extends Service {
   async create(name) {
     const { _id } = this.ctx.token
+    const userId = new this.app.mongoose.Types.ObjectId(_id)
 
     const c = await this.ctx.model.Group.find({}, { id: 1 })
       .sort({ _id: -1 })
@@ -20,9 +21,15 @@ class GroupService extends Service {
     return await this.ctx.model.Group.insertMany([
       {
         id: nextId,
-        owner: _id,
+        owner: userId,
         name,
         records: [],
+        members: [
+          {
+            id: userId,
+            debt: 0,
+          },
+        ],
         createdAt: Date.now(),
         modifiedAt: Date.now(),
         tempUsers: [],
@@ -49,7 +56,7 @@ class GroupService extends Service {
         await this.ctx.model.Group.find({
           id: groupId,
           members: {
-            $elemMatch: { $eq: userId },
+            $elemMatch: { id: { $eq: userId } },
           },
         })
       ).length > 0
@@ -74,7 +81,10 @@ class GroupService extends Service {
       },
       {
         $push: {
-          members: userId,
+          members: {
+            id: userId,
+            debt: 0,
+          },
         },
       }
     )
@@ -84,36 +94,34 @@ class GroupService extends Service {
     const { _id } = this.ctx.token
     const userId = new this.app.mongoose.Types.ObjectId(_id)
 
+    const f = await this.ctx.model.Group.find({
+      id: groupId,
+      owner: userId,
+    })
+
+    if (f.length < 1) {
+      throw new Error('You do not own this group')
+    }
+
+    const members = f[0].members
+
+    for (const m of members) {
+      await this.ctx.model.User.updateOne(
+        {
+          _id: m.id,
+        },
+        {
+          $inc: {
+            debt: -m.debt,
+          },
+        }
+      )
+    }
+
     return this.ctx.model.Group.deleteOne({
       id: groupId,
       owner: userId,
     })
-  }
-
-  async clear(groupId) {
-    const { _id } = this.ctx.token
-    const userId = new this.app.mongoose.Types.ObjectId(_id)
-
-    if (
-      (
-        await this.ctx.model.Group.find({
-          id: groupId,
-          owner: userId,
-        })
-      ).length < 1
-    ) {
-      throw new Error('You do not own this group')
-    }
-
-    return this.ctx.model.Group.updateOne(
-      {
-        id: groupId,
-        owner: userId,
-      },
-      {
-        $set: { records: [] },
-      }
-    )
   }
 
   async addTempUser(groupId, uuid, userName) {
@@ -153,7 +161,48 @@ class GroupService extends Service {
           tempUsers: {
             uuid,
             name: userName,
+            debt: 0,
           },
+        },
+      }
+    )
+  }
+
+  async invite(groupId, members) {
+    const memberAlreadyInGroup = (
+      await this.ctx.model.Group.find(
+        {
+          id: groupId,
+        },
+        {
+          'members.id': 1,
+        }
+      )
+    )[0].members.map((e) => new this.app.mongoose.Types.ObjectId(e.id))
+
+    const f = await this.ctx.model.User.find(
+      {
+        uuid: { $in: members },
+        _id: {
+          $nin: memberAlreadyInGroup,
+        },
+      },
+      {
+        _id: 1,
+      }
+    )
+    const membersIds = f.map((e) => e._id)
+
+    return this.ctx.model.Group.updateOne(
+      {
+        id: groupId,
+      },
+      {
+        $push: {
+          members: membersIds.map((m) => ({
+            id: m._id,
+            debt: 0,
+          })),
         },
       }
     )

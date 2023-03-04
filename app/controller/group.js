@@ -52,37 +52,17 @@ class GroupController extends BaseController {
 
     const { id } = this.ctx.query
 
-    const del = await this.ctx.service.group.dismiss(id)
-    if (del.deletedCount > 0) {
+    try {
+      const del = await this.ctx.service.group.dismiss(id)
+      if (del.deletedCount < 1) {
+        this.error('Dismiss failed')
+        return
+      }
       this.success({
         groupId: id,
       })
-    } else {
-      this.error('Dismiss failed.')
-    }
-  }
-
-  async clear() {
-    this.ctx.validate(
-      {
-        id: { type: 'string' },
-      },
-      this.ctx.request.body
-    )
-
-    const { id } = this.ctx.request.body
-
-    try {
-      const update = await this.ctx.service.group.clear(id)
-      if (update.n === 1) {
-        this.success({
-          groupId: id,
-        })
-      } else {
-        this.error('Clear failed.')
-      }
     } catch (e) {
-      this.error(e.message)
+      this.error('Dismiss failed.')
     }
   }
 
@@ -107,6 +87,32 @@ class GroupController extends BaseController {
         })
       } else {
         this.error('Add failed.')
+      }
+    } catch (e) {
+      this.error(e.message)
+    }
+  }
+
+  async invite() {
+    this.ctx.validate(
+      {
+        id: { type: 'string' },
+        members: { type: 'array' },
+      },
+      this.ctx.request.body
+    )
+
+    const { id, members } = this.ctx.request.body
+
+    try {
+      const update = await this.ctx.service.group.invite(id, members)
+      if (update.nModified === 1) {
+        this.success({
+          id,
+          members,
+        })
+      } else {
+        this.error('Invite failed.')
       }
     } catch (e) {
       this.error(e.message)
