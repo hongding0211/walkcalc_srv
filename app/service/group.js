@@ -207,6 +207,135 @@ class GroupService extends Service {
       }
     )
   }
+
+  async my() {
+    const { _id } = this.ctx.token
+    const userId = new this.app.mongoose.Types.ObjectId(_id)
+
+    const { page, size } = this.ctx.pagination
+
+    this.ctx.pagination.total = await this.ctx.model.Group.find({
+      $or: [
+        {
+          owner: userId,
+        },
+        {
+          members: {
+            $elemMatch: {
+              id: userId,
+            },
+          },
+        },
+      ],
+    }).countDocuments({})
+
+    return this.ctx.model.Group.aggregate([
+      {
+        $match: {
+          $or: [
+            {
+              owner: userId,
+            },
+            {
+              members: {
+                $elemMatch: {
+                  id: userId,
+                },
+              },
+            },
+          ],
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          owner: 0,
+          __v: 0,
+          records: 0,
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'members.id',
+          foreignField: '_id',
+          as: 'membersInfo',
+        },
+      },
+      {
+        $project: {
+          members: 0,
+          membersInfo: {
+            _id: 0,
+            source: 0,
+            source_uid: 0,
+            __v: 0,
+          },
+        },
+      },
+    ])
+      .sort({ modifiedAt: -1 })
+      .skip((page - 1) * size)
+      .limit(size)
+  }
+
+  async getById(groupId) {
+    const { _id } = this.ctx.token
+    const userId = new this.app.mongoose.Types.ObjectId(_id)
+
+    return this.ctx.model.Group.aggregate([
+      {
+        $match: {
+          $and: [
+            {
+              id: groupId,
+            },
+            {
+              $or: [
+                {
+                  owner: userId,
+                },
+                {
+                  members: {
+                    $elemMatch: {
+                      id: userId,
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          owner: 0,
+          __v: 0,
+          records: 0,
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'members.id',
+          foreignField: '_id',
+          as: 'membersInfo',
+        },
+      },
+      {
+        $project: {
+          members: 0,
+          membersInfo: {
+            _id: 0,
+            source: 0,
+            source_uid: 0,
+            __v: 0,
+          },
+        },
+      },
+    ])
+  }
 }
 
 module.exports = GroupService

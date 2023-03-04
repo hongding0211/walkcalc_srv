@@ -290,28 +290,9 @@ class RecordService extends Service {
     )
   }
 
-  async my() {
+  async getById(recordId) {
     const { _id } = this.ctx.token
     const userId = new this.app.mongoose.Types.ObjectId(_id)
-
-    const c = this.ctx.model.Group.find({
-      $or: [
-        {
-          owner: userId,
-        },
-        {
-          members: {
-            $elemMatch: {
-              $eq: userId,
-            },
-          },
-        },
-      ],
-    })
-
-    this.ctx.pagination.total = await c.countDocuments({})
-
-    const { page, size } = this.ctx.pagination
 
     return this.ctx.model.Group.aggregate([
       {
@@ -323,7 +304,7 @@ class RecordService extends Service {
             {
               members: {
                 $elemMatch: {
-                  $eq: userId,
+                  id: userId,
                 },
               },
             },
@@ -331,52 +312,109 @@ class RecordService extends Service {
         },
       },
       {
-        $lookup: {
-          from: 'users',
-          localField: 'members.id',
-          foreignField: '_id',
-          as: 'membersInfo',
+        $project: {
+          records: 1,
+        },
+      },
+      {
+        $unwind: '$records',
+      },
+      {
+        $match: {
+          'records.recordId': recordId,
         },
       },
       {
         $project: {
           _id: 0,
-          __v: 0,
-          members: 0,
+          who: '$records.who',
+          paid: '$records.paid',
+          forWhom: '$records.forWhom',
+          type: '$records.type',
+          text: '$records.text',
+          long: '$records.long',
+          lat: '$records.lat',
+          recordId: '$records.recordId',
+          createdAt: '$records.createdAt',
+          modifiedAt: '$records.modifiedAt',
+        },
+      },
+    ])
+  }
+
+  async getByGroupId(groupId) {
+    const { _id } = this.ctx.token
+    const userId = new this.app.mongoose.Types.ObjectId(_id)
+
+    const { page, size } = this.ctx.pagination
+
+    this.ctx.pagination.total = await this.ctx.model.Group.find({
+      $and: [
+        {
+          id: groupId,
+        },
+        {
+          $or: [
+            {
+              owner: userId,
+            },
+            {
+              members: {
+                $elemMatch: {
+                  id: userId,
+                },
+              },
+            },
+          ],
+        },
+      ],
+    }).countDocuments({})
+
+    return this.ctx.model.Group.aggregate([
+      {
+        $match: {
+          $and: [
+            {
+              id: groupId,
+            },
+            {
+              $or: [
+                {
+                  owner: userId,
+                },
+                {
+                  members: {
+                    $elemMatch: {
+                      id: userId,
+                    },
+                  },
+                },
+              ],
+            },
+          ],
         },
       },
       {
         $project: {
-          membersInfo: {
-            _id: 0,
-            source: 0,
-            source_uid: 0,
-            __v: 0,
-          },
+          records: 1,
         },
       },
       {
-        $lookup: {
-          from: 'users',
-          localField: 'owner',
-          foreignField: '_id',
-          as: 'ownerInfo',
-        },
-      },
-      {
-        $unwind: {
-          path: '$ownerInfo',
-        },
+        $unwind: '$records',
       },
       {
         $project: {
-          owner: 0,
-          ownerInfo: {
-            _id: 0,
-            source: 0,
-            source_uid: 0,
-            __v: 0,
-          },
+          _id: 0,
+          who: '$records.who',
+          paid: '$records.paid',
+          forWhom: '$records.forWhom',
+          type: '$records.type',
+          text: '$records.text',
+          long: '$records.long',
+          lat: '$records.lat',
+          recordId: '$records.recordId',
+          createdAt: '$records.createdAt',
+          modifiedAt: '$records.modifiedAt',
         },
       },
     ])
