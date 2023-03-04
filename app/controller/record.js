@@ -8,10 +8,10 @@ class RecordController extends BaseController {
         groupId: { type: 'string' },
         paid: { type: 'number' },
         forWhom: { type: 'array' },
-        type: { type: 'string' },
-        text: { type: 'string' },
-        long: { type: 'string' },
-        lat: { type: 'string' },
+        type: { type: 'string', required: false },
+        text: { type: 'string', required: false },
+        long: { type: 'string', required: false },
+        lat: { type: 'string', required: false },
       },
       this.ctx.request.body
     )
