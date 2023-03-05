@@ -6,6 +6,7 @@ class RecordController extends BaseController {
     this.ctx.validate(
       {
         groupId: { type: 'string' },
+        who: { type: 'string' },
         paid: { type: 'number' },
         forWhom: { type: 'array' },
         type: { type: 'string', required: false },

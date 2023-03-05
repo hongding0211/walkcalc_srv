@@ -120,7 +120,14 @@ class GroupController extends BaseController {
   }
 
   async my() {
-    this.success(await this.ctx.service.group.my())
+    const f = await this.ctx.service.group.my()
+    for (const group of f) {
+      for (let i = 0; i < group.membersInfo.length; i++) {
+        group.membersInfo[i].debt = group.members[i].debt
+      }
+      delete group.members
+    }
+    this.success(f)
   }
 
   async getById() {
@@ -134,6 +141,13 @@ class GroupController extends BaseController {
     const { id } = this.ctx.query
 
     const f = await this.ctx.service.group.getById(id)
+
+    for (const group of f) {
+      for (let i = 0; i < group.membersInfo.length; i++) {
+        group.membersInfo[i].debt = group.members[i].debt
+      }
+      delete group.members
+    }
 
     if (f.length < 1) {
       this.error('Query failed')

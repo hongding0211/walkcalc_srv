@@ -112,7 +112,7 @@ class GroupService extends Service {
         },
         {
           $inc: {
-            debt: -m.debt,
+            totalDebt: -m.debt,
           },
         }
       )
@@ -264,7 +264,6 @@ class GroupService extends Service {
       },
       {
         $project: {
-          members: 0,
           membersInfo: {
             _id: 0,
             source: 0,
@@ -282,6 +281,13 @@ class GroupService extends Service {
   async getById(groupId) {
     const { _id } = this.ctx.token
     const userId = new this.app.mongoose.Types.ObjectId(_id)
+
+    const f = await this.ctx.model.Group.find({
+      id: groupId,
+      owner: userId,
+    })
+
+    const isOwner = f.length > 0
 
     return this.ctx.model.Group.aggregate([
       {
@@ -325,13 +331,17 @@ class GroupService extends Service {
       },
       {
         $project: {
-          members: 0,
           membersInfo: {
             _id: 0,
             source: 0,
             source_uid: 0,
             __v: 0,
           },
+        },
+      },
+      {
+        $addFields: {
+          isOwner,
         },
       },
     ])
