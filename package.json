@@ -30,7 +30,7 @@
     "node": ">=16.0.0"
   },
   "scripts": {
-    "start": "egg-scripts start --daemon --title=egg-server-walkingclac_srv",
+    "start": "egg-scripts start --title=egg-server-walkingclac_srv",
     "stop": "egg-scripts stop --title=egg-server-walkingclac_srv",
     "dev": "egg-bin dev",
     "debug": "egg-bin debug",
