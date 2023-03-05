@@ -5,7 +5,7 @@ class RecordService extends Service {
     const { _id } = this.ctx.token
     const userId = new this.app.mongoose.Types.ObjectId(_id)
 
-    const { groupId, forWhom, paid } = payload
+    const { groupId, forWhom, paid, who: whoUuid } = payload
     delete payload.groupId
 
     if (forWhom.length < 1) {
@@ -36,18 +36,14 @@ class RecordService extends Service {
     ) {
       throw new Error('You are not in the group.')
     }
-
-    let uuid = await this.ctx.model.User.find({
-      _id: userId,
-    })
-    if (uuid.length < 1) {
-      throw new Error('User not exists')
-    }
-    uuid = uuid[0].uuid
-
-    if (forWhom.length === 1 && forWhom[0] === uuid) {
+    if (forWhom.length === 1 && forWhom[0] === whoUuid) {
       throw new Error('You cannot pay your self')
     }
+
+    const who = await this.ctx.model.User.find({
+      uuid: whoUuid,
+    })
+    const whoId = who.length > 0 ? who[0]._id : undefined
 
     const len = (
       await this.ctx.model.Group.aggregate([
@@ -98,7 +94,7 @@ class RecordService extends Service {
 
     // update debt for each people
     for (const cur of forWhomIds) {
-      const debt = cur._id.toString() === userId.toString() ? paid - avg : -avg
+      const debt = -avg
       await this.ctx.model.Group.updateOne(
         {
           id: groupId,
@@ -119,14 +115,13 @@ class RecordService extends Service {
           _id: cur._id,
         },
         {
-          $inc: { debt },
+          $inc: { totalDebt: debt },
         }
       )
     }
     // update debt for temp users
     for (const cur of tempUserUuids) {
-      const debt =
-        cur?._id?.toString() === userId.toString() ? paid - avg : -avg
+      const debt = -avg
       await this.ctx.model.Group.updateOne(
         {
           id: groupId,
@@ -143,6 +138,48 @@ class RecordService extends Service {
         }
       )
     }
+    // update for the one who paid
+    await this.ctx.model.Group.updateOne(
+      {
+        id: groupId,
+      },
+      {
+        $inc: { 'members.$[elem].debt': paid },
+      },
+      {
+        arrayFilters: [
+          {
+            'elem.id': whoId,
+          },
+        ],
+      }
+    )
+    await this.ctx.model.User.updateOne(
+      {
+        _id: whoId,
+      },
+      {
+        $inc: { totalDebt: paid },
+      }
+    )
+    // 如果检索不到对应的 ID，说明付款的人是临时账号
+    if (who.length < 1) {
+      await this.ctx.model.Group.updateOne(
+        {
+          id: groupId,
+        },
+        {
+          $inc: { 'tempUsers.$[elem].debt': paid },
+        },
+        {
+          arrayFilters: [
+            {
+              'elem.uuid': whoUuid,
+            },
+          ],
+        }
+      )
+    }
 
     // insert record
     return this.ctx.model.Group.updateOne(
@@ -152,7 +189,7 @@ class RecordService extends Service {
       {
         $push: {
           records: {
-            who: uuid,
+            who: whoUuid,
             ...payload,
             createdAt: Date.now(),
             modifiedAt: Date.now(),
@@ -175,7 +212,11 @@ class RecordService extends Service {
               owner: userId,
             },
             {
-              members: { $elemMatch: { $eq: userId } },
+              members: {
+                $elemMatch: {
+                  id: { $eq: userId },
+                },
+              },
             },
           ],
         })
@@ -209,7 +250,13 @@ class RecordService extends Service {
       throw new Error('Record not exists')
     }
 
-    const { forWhom, paid } = record[0].records
+    const { forWhom, paid, who } = record[0].records
+
+    const whoId = (
+      await this.ctx.model.User.find({
+        uuid: who,
+      })
+    )[0]?._id
 
     const forWhomIds = await this.ctx.model.User.find(
       {
@@ -233,9 +280,7 @@ class RecordService extends Service {
 
     // update debt for each person
     for (const cur of forWhomIds) {
-      const debt = -(cur._id.toString() === userId.toString()
-        ? paid - avg
-        : -avg)
+      const debt = avg
       await this.ctx.model.Group.updateOne(
         {
           id: groupId,
@@ -256,15 +301,13 @@ class RecordService extends Service {
           _id: cur._id,
         },
         {
-          $inc: { debt },
+          $inc: { totalDebt: debt },
         }
       )
     }
     // update debt for temp users
     for (const cur of tempUserUuids) {
-      const debt = -(cur?._id?.toString() === userId.toString()
-        ? paid - avg
-        : -avg)
+      const debt = avg
       await this.ctx.model.Group.updateOne(
         {
           id: groupId,
@@ -281,6 +324,30 @@ class RecordService extends Service {
         }
       )
     }
+    // update for the one who paid
+    await this.ctx.model.Group.updateOne(
+      {
+        id: groupId,
+      },
+      {
+        $inc: { 'members.$[elem].debt': -paid },
+      },
+      {
+        arrayFilters: [
+          {
+            'elem.id': whoId,
+          },
+        ],
+      }
+    )
+    await this.ctx.model.User.updateOne(
+      {
+        _id: whoId,
+      },
+      {
+        $inc: { totalDebt: -paid },
+      }
+    )
 
     await this.ctx.model.Group.updateOne(
       {

@@ -68,7 +68,7 @@ class UserService extends Service {
         _id: userId,
       },
       {
-        debt: 1,
+        totalDebt: 1,
       }
     )
   }

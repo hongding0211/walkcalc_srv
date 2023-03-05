@@ -43,7 +43,7 @@ class UserController extends BaseController {
               source: type,
               source_uid: uid,
               avatar: d.avatar,
-              debt: 0,
+              totalDebt: 0,
             }
             break
           }
@@ -96,12 +96,18 @@ class UserController extends BaseController {
   async search() {
     this.ctx.validate(
       {
-        name: { type: 'string' },
+        name: { type: 'string', required: false },
       },
       this.ctx.request.query
     )
 
     const { name } = this.ctx.request.query
+
+    if (!name) {
+      this.success([])
+      return
+    }
+
     const found = await this.ctx.service.user.findByName(name)
     this.success(found)
   }
@@ -110,7 +116,7 @@ class UserController extends BaseController {
     const found = await this.ctx.service.user.myDebt()
     if (found.length > 0) {
       this.success({
-        debt: found[0].debt,
+        debt: found[0].totalDebt,
       })
     } else {
       this.error('Query failed')
