@@ -430,27 +430,42 @@ class RecordService extends Service {
 
     const { page, size } = this.ctx.pagination
 
-    this.ctx.pagination.total = await this.ctx.model.Group.find({
-      $and: [
-        {
-          id: groupId,
-        },
-        {
-          $or: [
+    const t = await this.ctx.model.Group.aggregate([
+      {
+        $match: {
+          $and: [
             {
-              owner: userId,
+              id: groupId,
             },
             {
-              members: {
-                $elemMatch: {
-                  id: userId,
+              $or: [
+                {
+                  owner: userId,
                 },
-              },
+                {
+                  members: {
+                    $elemMatch: {
+                      id: userId,
+                    },
+                  },
+                },
+              ],
             },
           ],
         },
-      ],
-    }).countDocuments({})
+      },
+      {
+        $project: {
+          size: {
+            $size: '$records',
+          },
+        },
+      },
+    ])
+    if (t.length < 1) {
+      throw new Error('No records found')
+    }
+    this.ctx.pagination.total = t[0].size
 
     return this.ctx.model.Group.aggregate([
       {
