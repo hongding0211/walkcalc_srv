@@ -169,6 +169,31 @@ class GroupService extends Service {
   }
 
   async invite(groupId, members) {
+    const { _id } = this.ctx.token
+    const userId = new this.app.mongoose.Types.ObjectId(_id)
+
+    if (
+      (
+        await this.ctx.model.Group.find({
+          id: groupId,
+          $or: [
+            {
+              owner: userId,
+            },
+            {
+              members: {
+                $elemMatch: {
+                  id: { $eq: userId },
+                },
+              },
+            },
+          ],
+        })
+      ).length < 1
+    ) {
+      throw new Error('You are not in the group.')
+    }
+
     const memberAlreadyInGroup = (
       await this.ctx.model.Group.find(
         {
@@ -281,6 +306,28 @@ class GroupService extends Service {
   async getById(groupId) {
     const { _id } = this.ctx.token
     const userId = new this.app.mongoose.Types.ObjectId(_id)
+
+    if (
+      (
+        await this.ctx.model.Group.find({
+          id: groupId,
+          $or: [
+            {
+              owner: userId,
+            },
+            {
+              members: {
+                $elemMatch: {
+                  id: { $eq: userId },
+                },
+              },
+            },
+          ],
+        })
+      ).length < 1
+    ) {
+      throw new Error('You are not in the group.')
+    }
 
     const f = await this.ctx.model.Group.find({
       id: groupId,
