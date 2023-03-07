@@ -74,12 +74,6 @@ class RecordService extends Service {
       }
     )
 
-    const tempUserUuids = (
-      await this.ctx.model.Group.find({
-        id: groupId,
-      })
-    )[0].tempUsers
-
     const avg = paid / forWhom.length
 
     // update last modified time
@@ -120,7 +114,7 @@ class RecordService extends Service {
       )
     }
     // update debt for temp users
-    for (const cur of tempUserUuids) {
+    for (const cur of forWhom) {
       const debt = -avg
       await this.ctx.model.Group.updateOne(
         {
@@ -132,7 +126,7 @@ class RecordService extends Service {
         {
           arrayFilters: [
             {
-              'elem.uuid': cur.uuid,
+              'elem.uuid': cur,
             },
           ],
         }
@@ -162,7 +156,7 @@ class RecordService extends Service {
         $inc: { totalDebt: paid },
       }
     )
-    // 如果检索不到对应的 ID，说明付款的人是临时账号
+    // 如果检索不到对应的 ID，说明付款的人是 temp user
     if (who.length < 1) {
       await this.ctx.model.Group.updateOne(
         {
@@ -250,13 +244,12 @@ class RecordService extends Service {
       throw new Error('Record not exists')
     }
 
-    const { forWhom, paid, who } = record[0].records
+    const { forWhom, paid, who: whoUuid } = record[0].records
 
-    const whoId = (
-      await this.ctx.model.User.find({
-        uuid: who,
-      })
-    )[0]?._id
+    const who = await this.ctx.model.User.find({
+      uuid: whoUuid,
+    })
+    const whoId = who.length > 0 ? who[0]._id : undefined
 
     const forWhomIds = await this.ctx.model.User.find(
       {
@@ -269,12 +262,6 @@ class RecordService extends Service {
         uuid: 1,
       }
     )
-
-    const tempUserUuids = (
-      await this.ctx.model.Group.find({
-        id: groupId,
-      })
-    )[0].tempUsers
 
     const avg = paid / forWhom.length
 
@@ -306,7 +293,7 @@ class RecordService extends Service {
       )
     }
     // update debt for temp users
-    for (const cur of tempUserUuids) {
+    for (const cur of forWhom) {
       const debt = avg
       await this.ctx.model.Group.updateOne(
         {
@@ -318,7 +305,7 @@ class RecordService extends Service {
         {
           arrayFilters: [
             {
-              'elem.uuid': cur.uuid,
+              'elem.uuid': cur,
             },
           ],
         }
@@ -348,6 +335,25 @@ class RecordService extends Service {
         $inc: { totalDebt: -paid },
       }
     )
+
+    // 如果检索不到对应的 ID，说明付款的人是 temp user
+    if (who.length < 1) {
+      await this.ctx.model.Group.updateOne(
+        {
+          id: groupId,
+        },
+        {
+          $inc: { 'tempUsers.$[elem].debt': -paid },
+        },
+        {
+          arrayFilters: [
+            {
+              'elem.uuid': whoUuid,
+            },
+          ],
+        }
+      )
+    }
 
     await this.ctx.model.Group.updateOne(
       {
