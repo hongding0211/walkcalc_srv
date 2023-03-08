@@ -290,7 +290,6 @@ class GroupService extends Service {
       {
         $project: {
           membersInfo: {
-            _id: 0,
             source: 0,
             source_uid: 0,
             __v: 0,
@@ -379,7 +378,6 @@ class GroupService extends Service {
       {
         $project: {
           membersInfo: {
-            _id: 0,
             source: 0,
             source_uid: 0,
             __v: 0,

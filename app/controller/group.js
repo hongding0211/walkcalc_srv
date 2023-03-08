@@ -123,7 +123,10 @@ class GroupController extends BaseController {
     const f = await this.ctx.service.group.my()
     for (const group of f) {
       for (let i = 0; i < group.membersInfo.length; i++) {
-        group.membersInfo[i].debt = group.members[i].debt
+        group.membersInfo[i].debt = group.members.find(
+          (e) => e.id.toString() === group.membersInfo[i]._id.toString()
+        ).debt
+        delete group.membersInfo[i]._id
       }
       delete group.members
     }
@@ -144,7 +147,10 @@ class GroupController extends BaseController {
 
     for (const group of f) {
       for (let i = 0; i < group.membersInfo.length; i++) {
-        group.membersInfo[i].debt = group.members[i].debt
+        group.membersInfo[i].debt = group.members.find(
+          (e) => e.id.toString() === group.membersInfo[i]._id.toString()
+        ).debt
+        delete group.membersInfo[i]._id
       }
       delete group.members
     }
