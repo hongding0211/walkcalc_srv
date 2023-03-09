@@ -240,10 +240,6 @@ class RecordService extends Service {
       },
     ])
 
-    if (record.length < 1) {
-      throw new Error('Record not exists')
-    }
-
     const { forWhom, paid, who: whoUuid } = record[0].records
 
     const who = await this.ctx.model.User.find({
@@ -264,6 +260,23 @@ class RecordService extends Service {
     )
 
     const avg = paid / forWhom.length
+
+    const del = await this.ctx.model.Group.updateOne(
+      {
+        id: groupId,
+      },
+      {
+        $pull: {
+          records: {
+            recordId,
+          },
+        },
+      }
+    )
+
+    if (del.nModified < 1) {
+      throw new Error('Record not exists')
+    }
 
     // update debt for each person
     for (const cur of forWhomIds) {
@@ -355,25 +368,12 @@ class RecordService extends Service {
       )
     }
 
-    await this.ctx.model.Group.updateOne(
-      {
-        id: groupId,
-      },
-      {
-        modifiedAt: Date.now(),
-      }
-    )
-
     return this.ctx.model.Group.updateOne(
       {
         id: groupId,
       },
       {
-        $pull: {
-          records: {
-            recordId,
-          },
-        },
+        modifiedAt: Date.now(),
       }
     )
   }
