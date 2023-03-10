@@ -3,6 +3,7 @@ module.exports = (app) => {
   const Schema = mongoose.Schema
 
   const GroupSchema = new Schema({
+    idx: { type: Number },
     id: { type: String },
     owner: { type: Schema.Types.ObjectId },
     name: { type: String },

@@ -1,3 +1,4 @@
+const { numToString } = require('../utlis/codeGenerator')
 const Service = require('egg').Service
 
 class GroupService extends Service {
@@ -5,22 +6,17 @@ class GroupService extends Service {
     const { _id } = this.ctx.token
     const userId = new this.app.mongoose.Types.ObjectId(_id)
 
-    const c = await this.ctx.model.Group.find({}, { id: 1 })
+    const c = await this.ctx.model.Group.find({}, { idx: 1 })
       .sort({ _id: -1 })
       .limit(-1)
 
-    let nextIdNumber
-    if (c.length < 1) {
-      nextIdNumber = 40960 // 0xA000
-    } else {
-      nextIdNumber = parseInt(c[0].id, 16) + 1
-    }
-
-    const nextId = nextIdNumber.toString(16).toUpperCase()
+    const nextIndex = c.length < 1 ? 0 : c[0].idx + 1
+    const code = numToString(nextIndex)
 
     return await this.ctx.model.Group.insertMany([
       {
-        id: nextId,
+        idx: nextIndex,
+        id: code,
         owner: userId,
         name,
         records: [],
