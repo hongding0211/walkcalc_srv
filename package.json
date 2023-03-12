@@ -7,12 +7,15 @@
     "declarations": true
   },
   "dependencies": {
+    "@hong97/egg-auth": "^0.0.2",
     "crypto-js": "^4.1.1",
     "egg": "^3",
     "egg-mongoose": "^3.3.1",
     "egg-scripts": "^2",
     "egg-validate": "^2.0.2",
-    "jsonwebtoken": "^9.0.0"
+    "jsonwebtoken": "^9.0.0",
+    "sha.js": "^2.4.11",
+    "short-uuid": "^4.2.2"
   },
   "devDependencies": {
     "egg-bin": "^5",
@@ -28,7 +31,7 @@
     "node": ">=16.0.0"
   },
   "scripts": {
-    "start": "egg-scripts start --daemon --title=egg-server-walkingclac_srv",
+    "start": "egg-scripts start --title=egg-server-walkingclac_srv",
     "stop": "egg-scripts stop --title=egg-server-walkingclac_srv",
     "dev": "egg-bin dev",
     "debug": "egg-bin debug",
