@@ -10,4 +10,8 @@ module.exports = {
     enable: true,
     package: 'egg-mongoose',
   },
+  auth: {
+    enable: true,
+    package: '@hong97/egg-auth',
+  },
 }

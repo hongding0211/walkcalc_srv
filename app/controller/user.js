@@ -1,5 +1,4 @@
 const BaseController = require('./base')
-const { wrap } = require('../utlis/token')
 const short = require('short-uuid')
 
 class UserController extends BaseController {
@@ -59,7 +58,7 @@ class UserController extends BaseController {
         _id = found[0]._id
       }
 
-      const wrappedToken = wrap({
+      const wrappedToken = this.ctx.service.token.wrapToken({
         _id,
       })
 
