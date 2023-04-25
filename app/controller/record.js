@@ -13,6 +13,7 @@ class RecordController extends BaseController {
         text: { type: 'string', required: false },
         long: { type: 'string', required: false },
         lat: { type: 'string', required: false },
+        isDebtResolve: { type: 'boolean', required: false },
       },
       this.ctx.request.body
     )

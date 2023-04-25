@@ -150,6 +150,9 @@ class GroupController extends BaseController {
         group.membersInfo[i].debt = group.members.find(
           (e) => e.id.toString() === group.membersInfo[i]._id.toString()
         ).debt
+        group.membersInfo[i].cost = group.members.find(
+          (e) => e.id.toString() === group.membersInfo[i]._id.toString()
+        ).cost
         delete group.membersInfo[i]._id
       }
       delete group.members
