@@ -5,7 +5,7 @@ class RecordService extends Service {
     const { _id } = this.ctx.token
     const userId = new this.app.mongoose.Types.ObjectId(_id)
 
-    const { groupId, forWhom, paid, who: whoUuid } = payload
+    const { groupId, forWhom, paid, who: whoUuid, isDebtResolve } = payload
     delete payload.groupId
 
     if (forWhom.length < 1) {
@@ -94,7 +94,10 @@ class RecordService extends Service {
           id: groupId,
         },
         {
-          $inc: { 'members.$[elem].debt': debt },
+          $inc: {
+            'members.$[elem].debt': debt,
+            'members.$[elem].cost': isDebtResolve ? 0 : avg,
+          },
         },
         {
           arrayFilters: [
@@ -121,7 +124,10 @@ class RecordService extends Service {
           id: groupId,
         },
         {
-          $inc: { 'tempUsers.$[elem].debt': debt },
+          $inc: {
+            'tempUsers.$[elem].debt': debt,
+            'tempUsers.$[elem].cost': isDebtResolve ? 0 : avg,
+          },
         },
         {
           arrayFilters: [
@@ -240,7 +246,7 @@ class RecordService extends Service {
       },
     ])
 
-    const { forWhom, paid, who: whoUuid } = record[0].records
+    const { forWhom, paid, who: whoUuid, isDebtResolve } = record[0].records
 
     const who = await this.ctx.model.User.find({
       uuid: whoUuid,
@@ -286,7 +292,10 @@ class RecordService extends Service {
           id: groupId,
         },
         {
-          $inc: { 'members.$[elem].debt': debt },
+          $inc: {
+            'members.$[elem].debt': debt,
+            'members.$[elem].cost': isDebtResolve ? 0 : -debt,
+          },
         },
         {
           arrayFilters: [
@@ -313,7 +322,10 @@ class RecordService extends Service {
           id: groupId,
         },
         {
-          $inc: { 'tempUsers.$[elem].debt': debt },
+          $inc: {
+            'tempUsers.$[elem].debt': debt,
+            'tempUsers.$[elem].cost': isDebtResolve ? 0 : -debt,
+          },
         },
         {
           arrayFilters: [

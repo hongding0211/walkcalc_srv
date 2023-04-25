@@ -24,6 +24,7 @@ class GroupService extends Service {
           {
             id: userId,
             debt: 0,
+            cost: 0,
           },
         ],
         createdAt: Date.now(),
@@ -80,6 +81,7 @@ class GroupService extends Service {
           members: {
             id: userId,
             debt: 0,
+            cost: 0,
           },
         },
       }
@@ -158,6 +160,7 @@ class GroupService extends Service {
             uuid,
             name: userName,
             debt: 0,
+            cost: 0,
           },
         },
       }
@@ -223,6 +226,7 @@ class GroupService extends Service {
           members: membersIds.map((m) => ({
             id: m._id,
             debt: 0,
+            cost: 0,
           })),
         },
       }
