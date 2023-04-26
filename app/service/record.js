@@ -36,9 +36,6 @@ class RecordService extends Service {
     ) {
       throw new Error('You are not in the group.')
     }
-    if (forWhom.length === 1 && forWhom[0] === whoUuid) {
-      throw new Error('You cannot pay your self')
-    }
 
     const who = await this.ctx.model.User.find({
       uuid: whoUuid,
@@ -58,7 +55,7 @@ class RecordService extends Service {
       ])
     )[0].total
 
-    if (len >= 500) {
+    if (len >= 5000) {
       throw new Error('Reach group record limits.')
     }
 
