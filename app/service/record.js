@@ -527,6 +527,7 @@ class RecordService extends Service {
           recordId: '$records.recordId',
           createdAt: '$records.createdAt',
           modifiedAt: '$records.modifiedAt',
+          isDebtResolve: '$records.isDebtResolve',
         },
       },
     ])
