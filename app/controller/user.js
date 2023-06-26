@@ -92,6 +92,12 @@ class UserController extends BaseController {
     this.success(found)
   }
 
+  async patchInfo() {
+    const userInfo = this.ctx.request.body
+    const res = await this.ctx.service.user.patchInfo(userInfo)
+    this.success(res)
+  }
+
   async search() {
     this.ctx.validate(
       {

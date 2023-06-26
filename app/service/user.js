@@ -72,6 +72,29 @@ class UserService extends Service {
       }
     )
   }
+
+  async patchInfo(userInfo) {
+    const { _id } = this.ctx.token
+    const originUserInfo = this.ctx.model.User.find(
+      {
+        _id,
+      },
+      projection
+    )[0]
+    await this.ctx.model.User.updateOne(
+      {
+        _id,
+      },
+      {
+        ...originUserInfo,
+        ...userInfo,
+      }
+    )
+    return {
+      ...originUserInfo,
+      ...userInfo,
+    }
+  }
 }
 
 module.exports = UserService
