@@ -12,6 +12,7 @@ module.exports = (app) => {
     createdAt: { type: Number },
     modifiedAt: { type: Number },
     tempUsers: { type: Array },
+    archivedUsers: { type: Array },
   })
 
   return mongoose.model('Group', GroupSchema)
