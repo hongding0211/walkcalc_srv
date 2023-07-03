@@ -30,6 +30,7 @@ class GroupService extends Service {
         createdAt: Date.now(),
         modifiedAt: Date.now(),
         tempUsers: [],
+        archivedUsers: [],
       },
     ])
   }
@@ -390,6 +391,64 @@ class GroupService extends Service {
         },
       },
     ])
+  }
+
+  async toggleArchive(groupId, isArchive) {
+    const { _id } = this.ctx.token
+    const userId = new this.app.mongoose.Types.ObjectId(_id)
+
+    if (
+      (
+        await this.ctx.model.Group.find({
+          id: groupId,
+          $or: [
+            {
+              owner: userId,
+            },
+            {
+              members: {
+                $elemMatch: {
+                  id: { $eq: userId },
+                },
+              },
+            },
+          ],
+        })
+      ).length < 1
+    ) {
+      throw new Error('You are not in the group.')
+    }
+
+    const user = await this.ctx.model.User.find({
+      _id,
+    })
+    if (user.length < 1) {
+      throw new Error('Invalid user ID.')
+    }
+    const { uuid } = user[0]
+
+    if (isArchive) {
+      return this.ctx.model.Group.updateOne(
+        {
+          id: groupId,
+        },
+        {
+          $addToSet: {
+            archivedUsers: uuid,
+          },
+        }
+      )
+    }
+    return this.ctx.model.Group.updateOne(
+      {
+        id: groupId,
+      },
+      {
+        $pull: {
+          archivedUsers: uuid,
+        },
+      }
+    )
   }
 }
 

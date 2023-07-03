@@ -164,6 +164,48 @@ class GroupController extends BaseController {
     }
     this.success(f[0])
   }
+
+  async archive() {
+    this.ctx.validate(
+      {
+        id: { type: 'string' },
+      },
+      this.ctx.request.body
+    )
+
+    const { id } = this.ctx.request.body
+
+    const res = await this.ctx.service.group.toggleArchive(id, true)
+
+    if (res.nModified) {
+      this.success({
+        id,
+      })
+    } else {
+      this.error('Archive failed.')
+    }
+  }
+
+  async unarchive() {
+    this.ctx.validate(
+      {
+        id: { type: 'string' },
+      },
+      this.ctx.request.body
+    )
+
+    const { id } = this.ctx.request.body
+
+    const res = await this.ctx.service.group.toggleArchive(id, false)
+
+    if (res.nModified) {
+      this.success({
+        id,
+      })
+    } else {
+      this.error('Unarchive failed.')
+    }
+  }
 }
 
 module.exports = GroupController

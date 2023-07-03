@@ -9,4 +9,6 @@ module.exports = ({ router, middleware, controller }) => {
   router.post('/group/invite', controller.group.invite)
   router.get('/group/my', middleware.pagination(), controller.group.my)
   router.get('/group', controller.group.getById)
+  router.post('/group/archive', controller.group.archive)
+  router.post('/group/unarchive', controller.group.unarchive)
 }
