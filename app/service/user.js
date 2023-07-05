@@ -23,7 +23,47 @@ class UserService extends Service {
     )
   }
 
-  findById(_id) {
+  async findById(_id) {
+    const f = await this.ctx.model.User.find(
+      {
+        _id,
+      },
+      {
+        ...projection,
+        source_uid: 1,
+      }
+    )
+    if (f.length < 1) {
+      return []
+    }
+    const userData = await this.ctx.service.oauth.sso.getUserData(
+      undefined,
+      f[0].source_uid
+    )
+    if (
+      !userData.avatar ||
+      !userData.name ||
+      (userData.avatar === f[0].avatar && userData.name === f[0].name)
+    ) {
+      return [
+        {
+          uuid: f[0].uuid,
+          name: f[0].name,
+          avatar: f[0].avatar,
+        },
+      ]
+    }
+    // update userInfo
+    await this.ctx.model.User.updateOne(
+      {
+        _id,
+      },
+      {
+        uuid: f[0].uuid,
+        avatar: userData.avatar,
+        name: userData.name,
+      }
+    )
     return this.ctx.model.User.find(
       {
         _id,
