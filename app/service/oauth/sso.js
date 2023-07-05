@@ -36,13 +36,14 @@ class SSOService extends Service {
     }
   }
 
-  async getUserData(authToken) {
+  async getUserData(authToken, uuid) {
     const ssoConfig = this.config.sso
 
     const res = await this.ctx.curl(ssoConfig.api.getUserInfo.path, {
       method: ssoConfig.api.getUserInfo.method,
       data: {
         authToken,
+        uuid,
       },
       dataType: 'json',
     })
