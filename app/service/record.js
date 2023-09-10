@@ -73,6 +73,7 @@ class RecordService extends Service {
         _id: 1,
         uuid: 1,
         pushToken: 1,
+        name: 1,
       }
     )
 
@@ -121,14 +122,21 @@ class RecordService extends Service {
       if (!cur?.pushToken) {
         continue
       }
+      if (!isDebtResolve && cur._id === whoId) {
+        continue
+      }
+      if (isDebtResolve && !who.length) {
+        continue
+      }
       const whoPaidName =
         who.length > 0
           ? who[0].name
           : group[0].tempUsers.find((e) => e.uuid === whoUuid).name
       const pushText = isDebtResolve
-        ? `${whoPaidName}和解了债务，你需要支付${(avg / 100).toFixed(2)}`
+        ? `${cur.name}和解了债务，你需要支付${(avg / 100).toFixed(2)}`
         : `${whoPaidName}为你支付了${(avg / 100).toFixed(2)}`
-      this.ctx.service.push.pushText(cur.pushToken, group[0].name, pushText)
+      const pushToken = isDebtResolve ? who[0].pushToken : cur.pushToken
+      this.ctx.service.push.pushText(pushToken, group[0].name, pushText)
     }
     // update debt for temp users
     for (const cur of forWhom) {
