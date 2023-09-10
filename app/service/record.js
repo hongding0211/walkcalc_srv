@@ -190,8 +190,7 @@ class RecordService extends Service {
     const recordText = payload?.text ? `(${payload.text})` : ''
     const requesterName = (
       await this.ctx.model.User.find({
-        _id,
-        userId,
+        _id: userId,
       })
     )[0].name
     const amount = (avg / 100).toFixed(2)
