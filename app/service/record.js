@@ -15,25 +15,29 @@ class RecordService extends Service {
       throw new Error('Meaningless 0 amount')
     }
 
-    if (
-      (
-        await this.ctx.model.Group.find({
-          id: groupId,
-          $or: [
-            {
-              owner: userId,
-            },
-            {
-              members: {
-                $elemMatch: {
-                  id: { $eq: userId },
-                },
+    const group = await this.ctx.model.Group.find(
+      {
+        id: groupId,
+        $or: [
+          {
+            owner: userId,
+          },
+          {
+            members: {
+              $elemMatch: {
+                id: { $eq: userId },
               },
             },
-          ],
-        })
-      ).length < 1
-    ) {
+          },
+        ],
+      },
+      {
+        name: 1,
+        tempUsers: 1,
+      }
+    )
+
+    if (group.length < 1) {
       throw new Error('You are not in the group.')
     }
 
@@ -68,6 +72,7 @@ class RecordService extends Service {
       {
         _id: 1,
         uuid: 1,
+        pushToken: 1,
       }
     )
 
@@ -112,6 +117,18 @@ class RecordService extends Service {
           $inc: { totalDebt: debt },
         }
       )
+      // send notifications
+      if (!cur?.pushToken) {
+        continue
+      }
+      const whoPaidName =
+        who.length > 0
+          ? who[0].name
+          : group[0].tempUsers.find((e) => e.uuid === whoUuid).name
+      const pushText = isDebtResolve
+        ? `${whoPaidName}和解了债务，你需要支付${(avg / 100).toFixed(2)}`
+        : `${whoPaidName}为你支付了${(avg / 100).toFixed(2)}`
+      this.ctx.service.push.pushText(cur.pushToken, group[0].name, pushText)
     }
     // update debt for temp users
     for (const cur of forWhom) {

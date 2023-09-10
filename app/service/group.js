@@ -39,13 +39,17 @@ class GroupService extends Service {
     const { _id } = this.ctx.token
     const userId = new this.app.mongoose.Types.ObjectId(_id)
 
-    if (
-      (
-        await this.ctx.model.Group.find({
-          id: groupId,
-        })
-      ).length < 1
-    ) {
+    const group = await this.ctx.model.Group.find(
+      {
+        id: groupId,
+      },
+      {
+        name: 1,
+        owner: 1,
+      }
+    )
+
+    if (group.length < 1) {
       throw new Error('Group not exists.')
     }
 
@@ -71,6 +75,32 @@ class GroupService extends Service {
       ).length > 0
     ) {
       throw new Error('You are already the group owner.')
+    }
+
+    // send notification
+    const ownerUser = this.ctx.model.User.find(
+      {
+        _id: group[0].owner,
+      },
+      {
+        pushToken: 1,
+      }
+    )
+    const joinUser = this.ctx.model.User.find(
+      {
+        _id: userId,
+      },
+      {
+        name: 1,
+      }
+    )
+    if (!joinUser[0].name || !ownerUser[0].pushToken) {
+      const pushText = `${joinUser[0].name}加入了群组`
+      this.ctx.service.push.pushText(
+        ownerUser[0].pushToken,
+        group[0].name,
+        pushText
+      )
     }
 
     return this.ctx.model.Group.updateOne(
@@ -214,9 +244,35 @@ class GroupService extends Service {
       },
       {
         _id: 1,
+        pushToken: 1,
       }
     )
     const membersIds = f.map((e) => e._id)
+
+    // send notifications
+    const group = await this.ctx.model.Group.find(
+      {
+        id: groupId,
+      },
+      {
+        name: 1,
+      }
+    )
+    const owner = await this.ctx.model.User.find(
+      {
+        _id: userId,
+      },
+      {
+        name: 1,
+      }
+    )
+    f.forEach((m) => {
+      if (!m.pushToken || !owner[0].name || !group[0].name) {
+        return
+      }
+      const pushText = `${owner[0].name}已邀请你加入群组`
+      this.ctx.service.push.pushText(m.pushToken, group[0].name, pushText)
+    })
 
     return this.ctx.model.Group.updateOne(
       {
