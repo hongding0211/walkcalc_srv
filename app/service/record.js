@@ -221,7 +221,7 @@ class RecordService extends Service {
           .filter((e) => e._id !== whoId)
           .map((e) => e.name)
         const namesText = names.length
-          ? names.slice(0, 2).join(', ') + '等人'
+          ? names.slice(0, 2).join(', ') + (names.length > 1 ? '等人' : '')
           : ''
         pushQueue.push({
           pushToken: who[0].pushToken,
