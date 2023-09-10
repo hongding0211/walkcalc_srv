@@ -119,13 +119,22 @@ class RecordService extends Service {
         }
       )
       // send notifications
+      // 如果被推送的人没有 pushToken，直接跳过
       if (!cur?.pushToken) {
         continue
       }
+      if (isDebtResolve && !who.length) {
+        continue
+      }
+      // 自己给自己出的那一份，不必要告知
       if (!isDebtResolve && cur._id === whoId) {
         continue
       }
-      if (isDebtResolve && !who.length) {
+      // 发送的那个人，也不要再给他推送了
+      if (
+        (isDebtResolve && userId === who[0]._id) ||
+        (!isDebtResolve && userId === cur._id)
+      ) {
         continue
       }
       const whoPaidName =
