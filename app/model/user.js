@@ -9,6 +9,7 @@ module.exports = (app) => {
     source_uid: { type: String },
     avatar: { type: String },
     totalDebt: { type: Number },
+    pushToken: { type: String },
   })
 
   return mongoose.model('User', UserSchema)

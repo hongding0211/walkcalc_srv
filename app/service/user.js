@@ -135,6 +135,29 @@ class UserService extends Service {
       ...userInfo,
     }
   }
+
+  async updatePushToken(pushToken) {
+    const { _id } = this.ctx.token
+    const originUserInfo = this.ctx.model.User.find(
+      {
+        _id,
+      },
+      projection
+    )[0]
+    await this.ctx.model.User.updateOne(
+      {
+        _id,
+      },
+      {
+        ...originUserInfo,
+        pushToken,
+      }
+    )
+    return {
+      ...originUserInfo,
+      pushToken,
+    }
+  }
 }
 
 module.exports = UserService
