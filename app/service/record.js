@@ -118,34 +118,6 @@ class RecordService extends Service {
           $inc: { totalDebt: debt },
         }
       )
-      // send notifications
-      // 如果被推送的人没有 pushToken，直接跳过
-      if (!cur?.pushToken) {
-        continue
-      }
-      if (isDebtResolve && !who.length) {
-        continue
-      }
-      // 自己给自己出的那一份，不必要告知
-      if (!isDebtResolve && cur._id === whoId) {
-        continue
-      }
-      // 发送的那个人，也不要再给他推送了
-      if (
-        (isDebtResolve && userId === who[0]._id) ||
-        (!isDebtResolve && userId === cur._id)
-      ) {
-        continue
-      }
-      const whoPaidName =
-        who.length > 0
-          ? who[0].name
-          : group[0].tempUsers.find((e) => e.uuid === whoUuid).name
-      const pushText = isDebtResolve
-        ? `${cur.name}和解了债务，你需要支付${(avg / 100).toFixed(2)}`
-        : `${whoPaidName}为你支付了${(avg / 100).toFixed(2)}`
-      const pushToken = isDebtResolve ? who[0].pushToken : cur.pushToken
-      this.ctx.service.push.pushText(pushToken, group[0].name, pushText)
     }
     // update debt for temp users
     for (const cur of forWhom) {
@@ -211,6 +183,92 @@ class RecordService extends Service {
         }
       )
     }
+
+    // send notifications
+    const pushQueue = []
+    const groupName = group[0].name
+    const recordText = payload?.text ? `(${payload.text})` : ''
+    const requesterName = (
+      await this.ctx.model.User.find({
+        _id,
+        userId,
+      })
+    )[0].name
+    const amount = (avg / 100).toFixed(2)
+
+    if (!isDebtResolve) {
+      forWhomIds.forEach((target) => {
+        // 如果这个对象没有 token，直接返回
+        if (!target?.pushToken) {
+          return
+        }
+        // 不要给发送这个请求的人推送
+        if (userId === target._id) {
+          return
+        }
+        // 如果这个人是付钱的那个，也不要推送
+        if (whoId === target._id) {
+          return
+        }
+        // 告诉剩下的人，别人为他们支付了多少钱
+        pushQueue.push({
+          pushToken: target.pushToken,
+          pushText: `${who[0].name}为你支付了${amount}` + recordText,
+        })
+      })
+      // 告诉付款的人，他为大家支付了多少钱
+      if (whoId && whoId !== userId && !who[0].pushToken) {
+        const names = forWhomIds
+          .filter((e) => e._id !== whoId)
+          .map((e) => e.name)
+        const namesText = names.length
+          ? names.slice(0, 2).join(', ') + '等人'
+          : ''
+        pushQueue.push({
+          pushToken: who[0].pushToken,
+          pushText: namesText
+            ? `你为${names}支付了${amount}` + recordText
+            : `你支付了${amount}` + recordText,
+        })
+      }
+    } else {
+      // 告诉需要“还钱的人”，要给谁多少钱
+      if (whoId && who[0].pushToken && whoId !== userId) {
+        let targetUserName
+        if (forWhomIds.length) {
+          // 收钱的人是正式用户
+          targetUserName = forWhomIds[0].name
+        } else {
+          // 收钱的人是临时用户
+          targetUserName = group.tempUsers.find(
+            (e) => e.uuid === forWhom[0].uuid
+          ).name
+        }
+        pushQueue.push({
+          pushToken: who[0].pushToken,
+          pushText: `${requesterName}和解了债务，你需要向${targetUserName}支付${amount}`,
+        })
+      }
+      // 告诉债主，谁要向他还钱
+      if (forWhomIds.length && forWhomIds[0].pushToken) {
+        let payUserName
+        if (who.length) {
+          // 要还钱的人是正式用户
+          payUserName = who[0].name
+        } else {
+          // 要还钱的人是临时用户
+          payUserName = group.tempUsers.find((e) => e.uuid === whoUuid).name
+        }
+        pushQueue.push({
+          pushToken: forWhomIds[0].pushToken,
+          pushText: `${requesterName}和解了债务，${payUserName}需要向你支付${amount}`,
+        })
+      }
+    }
+
+    pushQueue.forEach((p) => {
+      this.ctx.service.push.pushText(p.pushToken, groupName, p.pushText)
+    })
 
     // insert record
     return this.ctx.model.Group.updateOne(
