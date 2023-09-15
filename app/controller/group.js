@@ -206,6 +206,33 @@ class GroupController extends BaseController {
       this.error('Unarchive failed.')
     }
   }
+
+  async changeName() {
+    this.ctx.validate(
+      {
+        id: { type: 'string' },
+        name: { type: 'string' },
+      },
+      this.ctx.request.body
+    )
+
+    const { id, name } = this.ctx.request.body
+
+    if (!name) {
+      this.error('Invalid group name')
+    }
+
+    const res = await this.ctx.service.group.changeName(id, name)
+
+    if (res.nModified) {
+      this.success({
+        id,
+        name,
+      })
+    } else {
+      this.error('Change failed.')
+    }
+  }
 }
 
 module.exports = GroupController
