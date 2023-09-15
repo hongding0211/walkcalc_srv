@@ -506,6 +506,31 @@ class GroupService extends Service {
       }
     )
   }
+
+  async changeName(id, name) {
+    const { _id } = this.ctx.token
+    const userId = new this.app.mongoose.Types.ObjectId(_id)
+
+    if (
+      (
+        await this.ctx.model.Group.find({
+          id,
+          owner: userId,
+        })
+      ).length < 1
+    ) {
+      throw new Error('You do not own this group')
+    }
+
+    return this.ctx.model.Group.updateOne(
+      {
+        id,
+      },
+      {
+        name,
+      }
+    )
+  }
 }
 
 module.exports = GroupService

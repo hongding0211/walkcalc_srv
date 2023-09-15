@@ -11,4 +11,5 @@ module.exports = ({ router, middleware, controller }) => {
   router.get('/group', controller.group.getById)
   router.post('/group/archive', controller.group.archive)
   router.post('/group/unarchive', controller.group.unarchive)
+  router.post('/group/changeName', controller.group.changeName)
 }
