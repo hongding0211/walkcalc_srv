@@ -42,7 +42,7 @@ module.exports = (appInfo) => {
 
   const mongoose = {
     client: {
-      url: 'mongodb://127.0.0.1:27017',
+      url: 'mongodb://root:keith205@hong97.ltd:27017/?authSource=admin&readPreference=primary&directConnection=true&ssl=false',
       options: {
         dbName: 'walkingcalc',
       },

@@ -72,7 +72,7 @@ class RecordService extends Service {
       {
         _id: 1,
         uuid: 1,
-        pushToken: 1,
+        meta: 1,
         name: 1,
       }
     )
@@ -199,7 +199,7 @@ class RecordService extends Service {
     if (!isDebtResolve) {
       forWhomIds.forEach((target) => {
         // 如果这个对象没有 token，直接返回
-        if (!target?.pushToken) {
+        if (!target?.meta?.pushToken) {
           return
         }
         // 不要给发送这个请求的人推送
@@ -212,12 +212,12 @@ class RecordService extends Service {
         }
         // 告诉剩下的人，别人为他们支付了多少钱
         pushQueue.push({
-          pushToken: target.pushToken,
+          pushToken: target.meta.pushToken,
           pushText: `${who[0].name}为你支付了${amount}` + recordText,
         })
       })
       // 告诉付款的人，他为大家支付了多少钱
-      if (whoId && !whoId.equals(userId) && who[0].pushToken) {
+      if (whoId && !whoId.equals(userId) && who[0]?.meta?.pushToken) {
         const names = forWhomIds
           .filter((e) => e._id !== whoId)
           .map((e) => e.name)
@@ -225,7 +225,7 @@ class RecordService extends Service {
           ? names.slice(0, 2).join(', ') + (names.length > 2 ? '等人' : '')
           : ''
         pushQueue.push({
-          pushToken: who[0].pushToken,
+          pushToken: who[0].meta.pushToken,
           pushText: namesText
             ? `你为${namesText}支付了${totalAmount}` + recordText
             : `你支付了${totalAmount}` + recordText,
@@ -233,7 +233,7 @@ class RecordService extends Service {
       }
     } else {
       // 告诉需要“还钱的人”，要给谁多少钱
-      if (whoId && who[0].pushToken && !whoId.equals(userId)) {
+      if (whoId && who[0]?.meta?.pushToken && !whoId.equals(userId)) {
         let targetUserName
         if (forWhomIds.length) {
           // 收钱的人是正式用户
@@ -245,12 +245,12 @@ class RecordService extends Service {
           ).name
         }
         pushQueue.push({
-          pushToken: who[0].pushToken,
+          pushToken: who[0].meta.pushToken,
           pushText: `${requesterName}和解了债务，你需要向${targetUserName}支付${amount}`,
         })
       }
       // 告诉债主，谁要向他还钱
-      if (forWhomIds.length && forWhomIds[0].pushToken) {
+      if (forWhomIds.length && forWhomIds[0]?.meta?.pushToken) {
         let payUserName
         if (who.length) {
           // 要还钱的人是正式用户
@@ -260,7 +260,7 @@ class RecordService extends Service {
           payUserName = group.tempUsers.find((e) => e.uuid === whoUuid).name
         }
         pushQueue.push({
-          pushToken: forWhomIds[0].pushToken,
+          pushToken: forWhomIds[0].meta.pushToken,
           pushText: `${requesterName}和解了债务，${payUserName}需要向你支付${amount}`,
         })
       }
