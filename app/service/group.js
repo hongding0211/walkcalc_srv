@@ -83,7 +83,7 @@ class GroupService extends Service {
         _id: group[0].owner,
       },
       {
-        pushToken: 1,
+        meta: 1,
       }
     )
     const joinUser = this.ctx.model.User.find(
@@ -94,10 +94,13 @@ class GroupService extends Service {
         name: 1,
       }
     )
-    if (!joinUser[0].name || !ownerUser[0].pushToken) {
-      const pushText = `${joinUser[0].name}加入了群组`
+    if (!joinUser[0].name || !ownerUser[0]?.meta?.pushToken) {
+      let pushText = `${joinUser[0].name}加入了群组`
+      if (ownerUser[0]?.meta?.language === 'en') {
+        pushText = `${joinUser[0].name} joined the group`
+      }
       this.ctx.service.push.pushText(
-        ownerUser[0].pushToken,
+        ownerUser[0].meta?.pushToken,
         group[0].name,
         pushText
       )
@@ -244,7 +247,7 @@ class GroupService extends Service {
       },
       {
         _id: 1,
-        pushToken: 1,
+        meta: 1,
       }
     )
     const membersIds = f.map((e) => e._id)
@@ -267,11 +270,14 @@ class GroupService extends Service {
       }
     )
     f.forEach((m) => {
-      if (!m.pushToken || !owner[0].name || !group[0].name) {
+      if (!m?.meta?.pushToken || !owner[0].name || !group[0].name) {
         return
       }
-      const pushText = `${owner[0].name}已邀请你加入群组`
-      this.ctx.service.push.pushText(m.pushToken, group[0].name, pushText)
+      let pushText = `${owner[0].name}已邀请你加入群组`
+      if (m?.meta?.language === 'en') {
+        pushText = `${owner[0].name} invited you into the group`
+      }
+      this.ctx.service.push.pushText(m.meta.pushToken, group[0].name, pushText)
     })
 
     return this.ctx.model.Group.updateOne(
