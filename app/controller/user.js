@@ -43,7 +43,6 @@ class UserController extends BaseController {
               source_uid: uid,
               avatar: d.avatar,
               totalDebt: 0,
-              pushToken: '',
             }
             break
           }
@@ -72,14 +71,10 @@ class UserController extends BaseController {
   }
 
   async info() {
-    const { pushToken } = this.ctx.query
     const found = await this.ctx.service.user.findById(this.ctx.token._id)
     if (found.length < 1) {
       this.error('User not exists.')
       return
-    }
-    if (pushToken) {
-      await this.ctx.service.user.updatePushToken(pushToken)
     }
     this.success(found[0])
   }
@@ -131,6 +126,16 @@ class UserController extends BaseController {
     } else {
       this.error('Query failed')
     }
+  }
+
+  async meta() {
+    const meta = this.ctx.request.body
+    if (!meta) {
+      this.error('Empty meta data')
+      return
+    }
+    await this.ctx.service.user.updateUserMeta(meta)
+    this.success(meta)
   }
 }
 

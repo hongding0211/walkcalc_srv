@@ -136,27 +136,22 @@ class UserService extends Service {
     }
   }
 
-  async updatePushToken(pushToken) {
+  async updateUserMeta(meta) {
     const { _id } = this.ctx.token
-    const originUserInfo = this.ctx.model.User.find(
+    const f = await this.ctx.model.User.find({
+      _id,
+    })
+    if (f.length < 1) {
+      throw new Error('Invalid user id')
+    }
+    return await this.ctx.model.User.updateOne(
       {
         _id,
       },
-      projection
-    )[0]
-    await this.ctx.model.User.updateOne(
       {
-        _id,
-      },
-      {
-        ...originUserInfo,
-        pushToken,
+        meta,
       }
     )
-    return {
-      ...originUserInfo,
-      pushToken,
-    }
   }
 }
 

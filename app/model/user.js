@@ -10,6 +10,7 @@ module.exports = (app) => {
     avatar: { type: String },
     totalDebt: { type: Number },
     pushToken: { type: String },
+    meta: { type: Object },
   })
 
   return mongoose.model('User', UserSchema)
