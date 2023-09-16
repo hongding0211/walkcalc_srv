@@ -194,6 +194,7 @@ class RecordService extends Service {
       })
     )[0].name
     const amount = (avg / 100).toFixed(2)
+    const totalAmount = (paid / 100).toFixed(2)
 
     if (!isDebtResolve) {
       forWhomIds.forEach((target) => {
@@ -202,11 +203,11 @@ class RecordService extends Service {
           return
         }
         // 不要给发送这个请求的人推送
-        if (userId === target._id) {
+        if (userId.equals(target._id)) {
           return
         }
         // 如果这个人是付钱的那个，也不要推送
-        if (whoId === target._id) {
+        if (whoId.equals(target._id)) {
           return
         }
         // 告诉剩下的人，别人为他们支付了多少钱
@@ -216,23 +217,23 @@ class RecordService extends Service {
         })
       })
       // 告诉付款的人，他为大家支付了多少钱
-      if (whoId && whoId !== userId && !who[0].pushToken) {
+      if (whoId && !whoId.equals(userId) && who[0].pushToken) {
         const names = forWhomIds
           .filter((e) => e._id !== whoId)
           .map((e) => e.name)
         const namesText = names.length
-          ? names.slice(0, 2).join(', ') + (names.length > 1 ? '等人' : '')
+          ? names.slice(0, 2).join(', ') + (names.length > 2 ? '等人' : '')
           : ''
         pushQueue.push({
           pushToken: who[0].pushToken,
           pushText: namesText
-            ? `你为${names}支付了${amount}` + recordText
-            : `你支付了${amount}` + recordText,
+            ? `你为${namesText}支付了${totalAmount}` + recordText
+            : `你支付了${totalAmount}` + recordText,
         })
       }
     } else {
       // 告诉需要“还钱的人”，要给谁多少钱
-      if (whoId && who[0].pushToken && whoId !== userId) {
+      if (whoId && who[0].pushToken && !whoId.equals(userId)) {
         let targetUserName
         if (forWhomIds.length) {
           // 收钱的人是正式用户

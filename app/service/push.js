@@ -17,6 +17,7 @@ class PushService extends Service {
       title,
       body,
     }
+    notification.sound = 'default'
     notification.topic = 'ltd.hong97.walkingcalc'
     provider.send(notification, pushToken).then()
   }
