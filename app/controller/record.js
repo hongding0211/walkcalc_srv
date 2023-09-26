@@ -66,6 +66,37 @@ class RecordController extends BaseController {
     }
   }
 
+  async update() {
+    this.ctx.validate(
+      {
+        groupId: { type: 'string' },
+        recordId: { type: 'string' },
+        who: { type: 'string' },
+        paid: { type: 'number' },
+        forWhom: { type: 'array' },
+        type: { type: 'string', required: false },
+        text: { type: 'string', required: false },
+        long: { type: 'string', required: false },
+        lat: { type: 'string', required: false },
+        isDebtResolve: { type: 'boolean', required: false },
+      },
+      this.ctx.request.body
+    )
+
+    try {
+      const update = await this.ctx.service.record.update(this.ctx.request.body)
+      if (update.nModified > 0) {
+        this.success({
+          ...this.ctx.request.body,
+        })
+      } else {
+        this.error('Update failed.')
+      }
+    } catch (e) {
+      this.error(e.message)
+    }
+  }
+
   async getById() {
     this.ctx.validate(
       {
