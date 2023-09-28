@@ -509,7 +509,7 @@ class RecordService extends Service {
     // //////////////////////////
     // 先校验字段
     // //////////////////////////
-    await (async function () {
+    await async function () {
       const { _id } = this.ctx.token
       const userId = new this.app.mongoose.Types.ObjectId(_id)
       const { groupId, forWhom, paid } = payload
@@ -542,12 +542,12 @@ class RecordService extends Service {
       ) {
         throw new Error('You are not in the group.')
       }
-    })()
+    }.call(this)
 
     // //////////////////////////
     // 再执行删除逻辑
     // //////////////////////////
-    await (async function () {
+    await async function () {
       const { groupId, recordId } = payload
       const record = await this.ctx.model.Group.aggregate([
         {
@@ -686,12 +686,12 @@ class RecordService extends Service {
           }
         )
       }
-    })()
+    }.call(this)
 
     // //////////////////////////
     // 再执行新增逻辑
     // //////////////////////////
-    await (async function () {
+    await async function () {
       const { groupId, forWhom, paid, who: whoUuid, isDebtResolve } = payload
 
       const who = await this.ctx.model.User.find({
@@ -819,12 +819,53 @@ class RecordService extends Service {
           }
         )
       }
-    })()
+    }.call(this)
 
     // //////////////////////////
     // 最后更新字段
     // //////////////////////////
-    // TODO - HongD 09/26 20:53
+    const { groupId, recordId } = payload
+    const record = await this.ctx.model.Group.aggregate([
+      {
+        $match: {
+          id: groupId,
+        },
+      },
+      {
+        $project: {
+          records: 1,
+        },
+      },
+      {
+        $unwind: '$records',
+      },
+      {
+        $match: {
+          'records.recordId': recordId,
+        },
+      },
+    ])
+
+    return await this.ctx.model.Group.updateOne(
+      {
+        id: groupId,
+      },
+      {
+        $set: {
+          'records.$[elem]': {
+            ...record[0].records,
+            ...payload,
+          },
+        },
+      },
+      {
+        arrayFilters: [
+          {
+            'elem.recordId': recordId,
+          },
+        ],
+      }
+    )
   }
 
   async getById(recordId) {

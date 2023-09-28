@@ -76,8 +76,6 @@ class RecordController extends BaseController {
         forWhom: { type: 'array' },
         type: { type: 'string', required: false },
         text: { type: 'string', required: false },
-        long: { type: 'string', required: false },
-        lat: { type: 'string', required: false },
         isDebtResolve: { type: 'boolean', required: false },
       },
       this.ctx.request.body
@@ -85,7 +83,7 @@ class RecordController extends BaseController {
 
     try {
       const update = await this.ctx.service.record.update(this.ctx.request.body)
-      if (update.nModified > 0) {
+      if (update.ok > 0) {
         this.success({
           ...this.ctx.request.body,
         })
