@@ -505,6 +505,369 @@ class RecordService extends Service {
     )
   }
 
+  async update(payload) {
+    // //////////////////////////
+    // 先校验字段
+    // //////////////////////////
+    await async function () {
+      const { _id } = this.ctx.token
+      const userId = new this.app.mongoose.Types.ObjectId(_id)
+      const { groupId, forWhom, paid } = payload
+
+      if (forWhom.length < 1) {
+        throw new Error('For whom length less than 1')
+      }
+      if (paid === 0) {
+        throw new Error('Meaningless 0 amount')
+      }
+
+      if (
+        (
+          await this.ctx.model.Group.find({
+            id: groupId,
+            $or: [
+              {
+                owner: userId,
+              },
+              {
+                members: {
+                  $elemMatch: {
+                    id: { $eq: userId },
+                  },
+                },
+              },
+            ],
+          })
+        ).length < 1
+      ) {
+        throw new Error('You are not in the group.')
+      }
+    }.call(this)
+
+    // //////////////////////////
+    // 再执行删除逻辑
+    // //////////////////////////
+    await async function () {
+      const { groupId, recordId } = payload
+      const record = await this.ctx.model.Group.aggregate([
+        {
+          $match: {
+            id: groupId,
+          },
+        },
+        {
+          $project: {
+            records: 1,
+          },
+        },
+        {
+          $unwind: '$records',
+        },
+        {
+          $match: {
+            'records.recordId': recordId,
+          },
+        },
+      ])
+
+      const { forWhom, paid, who: whoUuid, isDebtResolve } = record[0].records
+
+      const who = await this.ctx.model.User.find({
+        uuid: whoUuid,
+      })
+      const whoId = who.length > 0 ? who[0]._id : undefined
+
+      const forWhomIds = await this.ctx.model.User.find(
+        {
+          uuid: {
+            $in: forWhom,
+          },
+        },
+        {
+          _id: 1,
+          uuid: 1,
+        }
+      )
+
+      const avg = paid / forWhom.length
+
+      // update debt for each person
+      for (const cur of forWhomIds) {
+        const debt = avg
+        await this.ctx.model.Group.updateOne(
+          {
+            id: groupId,
+          },
+          {
+            $inc: {
+              'members.$[elem].debt': debt,
+              'members.$[elem].cost': isDebtResolve ? 0 : -debt,
+            },
+          },
+          {
+            arrayFilters: [
+              {
+                'elem.id': cur._id,
+              },
+            ],
+          }
+        )
+        await this.ctx.model.User.updateOne(
+          {
+            _id: cur._id,
+          },
+          {
+            $inc: { totalDebt: debt },
+          }
+        )
+      }
+      // update debt for temp users
+      for (const cur of forWhom) {
+        const debt = avg
+        await this.ctx.model.Group.updateOne(
+          {
+            id: groupId,
+          },
+          {
+            $inc: {
+              'tempUsers.$[elem].debt': debt,
+              'tempUsers.$[elem].cost': isDebtResolve ? 0 : -debt,
+            },
+          },
+          {
+            arrayFilters: [
+              {
+                'elem.uuid': cur,
+              },
+            ],
+          }
+        )
+      }
+      // update for the one who paid
+      await this.ctx.model.Group.updateOne(
+        {
+          id: groupId,
+        },
+        {
+          $inc: { 'members.$[elem].debt': -paid },
+        },
+        {
+          arrayFilters: [
+            {
+              'elem.id': whoId,
+            },
+          ],
+        }
+      )
+      await this.ctx.model.User.updateOne(
+        {
+          _id: whoId,
+        },
+        {
+          $inc: { totalDebt: -paid },
+        }
+      )
+
+      // 如果检索不到对应的 ID，说明付款的人是 temp user
+      if (who.length < 1) {
+        await this.ctx.model.Group.updateOne(
+          {
+            id: groupId,
+          },
+          {
+            $inc: { 'tempUsers.$[elem].debt': -paid },
+          },
+          {
+            arrayFilters: [
+              {
+                'elem.uuid': whoUuid,
+              },
+            ],
+          }
+        )
+      }
+    }.call(this)
+
+    // //////////////////////////
+    // 再执行新增逻辑
+    // //////////////////////////
+    await async function () {
+      const { groupId, forWhom, paid, who: whoUuid, isDebtResolve } = payload
+
+      const who = await this.ctx.model.User.find({
+        uuid: whoUuid,
+      })
+      const whoId = who.length > 0 ? who[0]._id : undefined
+
+      const forWhomIds = await this.ctx.model.User.find(
+        {
+          uuid: {
+            $in: forWhom,
+          },
+        },
+        {
+          _id: 1,
+          uuid: 1,
+          meta: 1,
+          name: 1,
+        }
+      )
+
+      const avg = paid / forWhom.length
+
+      // update last modified time
+      await this.ctx.model.Group.updateOne(
+        {
+          id: groupId,
+        },
+        {
+          modifiedAt: Date.now(),
+        }
+      )
+
+      // update debt for each people
+      for (const cur of forWhomIds) {
+        const debt = -avg
+        await this.ctx.model.Group.updateOne(
+          {
+            id: groupId,
+          },
+          {
+            $inc: {
+              'members.$[elem].debt': debt,
+              'members.$[elem].cost': isDebtResolve ? 0 : avg,
+            },
+          },
+          {
+            arrayFilters: [
+              {
+                'elem.id': cur._id,
+              },
+            ],
+          }
+        )
+        await this.ctx.model.User.updateOne(
+          {
+            _id: cur._id,
+          },
+          {
+            $inc: { totalDebt: debt },
+          }
+        )
+      }
+      // update debt for temp users
+      for (const cur of forWhom) {
+        const debt = -avg
+        await this.ctx.model.Group.updateOne(
+          {
+            id: groupId,
+          },
+          {
+            $inc: {
+              'tempUsers.$[elem].debt': debt,
+              'tempUsers.$[elem].cost': isDebtResolve ? 0 : avg,
+            },
+          },
+          {
+            arrayFilters: [
+              {
+                'elem.uuid': cur,
+              },
+            ],
+          }
+        )
+      }
+      // update for the one who paid
+      await this.ctx.model.Group.updateOne(
+        {
+          id: groupId,
+        },
+        {
+          $inc: { 'members.$[elem].debt': paid },
+        },
+        {
+          arrayFilters: [
+            {
+              'elem.id': whoId,
+            },
+          ],
+        }
+      )
+      await this.ctx.model.User.updateOne(
+        {
+          _id: whoId,
+        },
+        {
+          $inc: { totalDebt: paid },
+        }
+      )
+      // 如果检索不到对应的 ID，说明付款的人是 temp user
+      if (who.length < 1) {
+        await this.ctx.model.Group.updateOne(
+          {
+            id: groupId,
+          },
+          {
+            $inc: { 'tempUsers.$[elem].debt': paid },
+          },
+          {
+            arrayFilters: [
+              {
+                'elem.uuid': whoUuid,
+              },
+            ],
+          }
+        )
+      }
+    }.call(this)
+
+    // //////////////////////////
+    // 最后更新字段
+    // //////////////////////////
+    const { groupId, recordId } = payload
+    const record = await this.ctx.model.Group.aggregate([
+      {
+        $match: {
+          id: groupId,
+        },
+      },
+      {
+        $project: {
+          records: 1,
+        },
+      },
+      {
+        $unwind: '$records',
+      },
+      {
+        $match: {
+          'records.recordId': recordId,
+        },
+      },
+    ])
+
+    return await this.ctx.model.Group.updateOne(
+      {
+        id: groupId,
+      },
+      {
+        $set: {
+          'records.$[elem]': {
+            ...record[0].records,
+            ...payload,
+          },
+        },
+      },
+      {
+        arrayFilters: [
+          {
+            'elem.recordId': recordId,
+          },
+        ],
+      }
+    )
+  }
+
   async getById(recordId) {
     const { _id } = this.ctx.token
     const userId = new this.app.mongoose.Types.ObjectId(_id)
