@@ -184,15 +184,17 @@ class RecordService extends Service {
       )
     }
 
+    const requester = (
+      await this.ctx.model.User.find({
+        _id: userId,
+      })
+    )[0]
+
     // send notifications
     const pushQueue = []
     const groupName = group[0].name
     const recordText = payload?.text ? `(${payload.text})` : ''
-    const requesterName = (
-      await this.ctx.model.User.find({
-        _id: userId,
-      })
-    )[0].name
+    const requesterName = requester.name
     const amount = (avg / 100).toFixed(2)
     const totalAmount = (paid / 100).toFixed(2)
 
@@ -308,6 +310,7 @@ class RecordService extends Service {
             ...payload,
             createdAt: Date.now(),
             modifiedAt: Date.now(),
+            createdBy: requester.uuid,
           },
         },
       }
@@ -512,7 +515,7 @@ class RecordService extends Service {
     await async function () {
       const { _id } = this.ctx.token
       const userId = new this.app.mongoose.Types.ObjectId(_id)
-      const { groupId, forWhom, paid } = payload
+      const { groupId, forWhom, paid, recordId } = payload
 
       if (forWhom.length < 1) {
         throw new Error('For whom length less than 1')
@@ -541,6 +544,34 @@ class RecordService extends Service {
         ).length < 1
       ) {
         throw new Error('You are not in the group.')
+      }
+
+      const record = await this.ctx.model.Group.aggregate([
+        {
+          $match: {
+            id: groupId,
+          },
+        },
+        {
+          $project: {
+            records: 1,
+          },
+        },
+        {
+          $unwind: '$records',
+        },
+        {
+          $match: {
+            'records.recordId': recordId,
+          },
+        },
+      ])
+
+      if (!record[0].records) {
+        throw new Error('Record not exists.')
+      }
+      if (record[0].records?.isDebtResolve) {
+        throw new Error('Debt resolved record, can not be modified.')
       }
     }.call(this)
 
@@ -846,6 +877,14 @@ class RecordService extends Service {
       },
     ])
 
+    const { _id } = this.ctx.token
+    const userId = new this.app.mongoose.Types.ObjectId(_id)
+    const requester = (
+      await this.ctx.model.User.find({
+        _id: userId,
+      })
+    )[0]
+
     return await this.ctx.model.Group.updateOne(
       {
         id: groupId,
@@ -855,6 +894,8 @@ class RecordService extends Service {
           'records.$[elem]': {
             ...record[0].records,
             ...payload,
+            modifiedAt: Date.now(),
+            modifiedBy: requester.uuid,
           },
         },
       },
@@ -915,6 +956,9 @@ class RecordService extends Service {
           recordId: '$records.recordId',
           createdAt: '$records.createdAt',
           modifiedAt: '$records.modifiedAt',
+          isDebtResolve: '$records.isDebtResolve',
+          createdBy: '$records.createdBy',
+          modifiedBy: '$records.modifiedBy',
         },
       },
     ])
@@ -1009,10 +1053,12 @@ class RecordService extends Service {
           createdAt: '$records.createdAt',
           modifiedAt: '$records.modifiedAt',
           isDebtResolve: '$records.isDebtResolve',
+          createdBy: '$records.createdBy',
+          modifiedBy: '$records.modifiedBy',
         },
       },
     ])
-      .sort({ modifiedAt: -1 })
+      .sort({ createdAt: -1 })
       .skip((page - 1) * size)
       .limit(size)
   }
