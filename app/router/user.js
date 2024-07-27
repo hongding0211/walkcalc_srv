@@ -9,4 +9,5 @@ module.exports = ({ router, controller }) => {
   router.get('/user/search', controller.user.search)
   router.get('/user/myDebt', controller.user.myDebt)
   router.post('/user/meta', controller.user.meta)
+  router.get('/user/refreshToken', controller.user.refreshToken)
 }

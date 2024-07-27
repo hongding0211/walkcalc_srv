@@ -70,6 +70,23 @@ class UserController extends BaseController {
     }
   }
 
+  async refreshToken() {
+    const { _id } = this.ctx.token
+    const userId = new this.app.mongoose.Types.ObjectId(_id)
+    const found = await this.ctx.model.User.find({
+      _id: userId,
+    })
+    if (!found.length) {
+      this.error('User not exists.')
+      return
+    }
+    this.success({
+      token: this.ctx.service.token.wrapToken({
+        _id,
+      }),
+    })
+  }
+
   async info() {
     const found = await this.ctx.service.user.findById(this.ctx.token._id)
     if (found.length < 1) {

@@ -53,6 +53,7 @@ module.exports = (appInfo) => {
     ignore: '/user/login',
     tokenKey:
       'U2FsdGVkX19Eplk5nQHwc5FlOvcCZjIWkPdLMx3DYI59RYEI72qTu8Y2lvmdCj1r2m7Z1VxF+i+Bfd9KLIIVdA==',
+    exp: '30d',
   }
 
   const traffic = {
